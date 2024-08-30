@@ -1,116 +1,83 @@
 pipeline {
     agent any
-
-    environment {
-        MAVEN_HOME = tool 'Maven'  // Assumes Maven is installed on Jenkins
-        SONARQUBE_URL = 'http://your-sonarqube-server:9000'
-        SONARQUBE_TOKEN = credentials('sonarqube-token')  // Assumes you have set up SonarQube token credentials
-    }
-
     stages {
         stage('Build') {
             steps {
                 script {
-                    // Maven build
-                    withEnv(["PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        sh 'mvn clean package'
-                    }
+                    echo 'Building the project...'
+                    // Use Maven for build automation
+                    sh 'mvn clean package'
                 }
             }
         }
-
         stage('Unit and Integration Tests') {
             steps {
                 script {
-                    // Run unit and integration tests
-                    withEnv(["PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        sh 'mvn test'
-                    }
-                }
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml' // Publish test results
+                    echo 'Running unit and integration tests...'
+                    // Use JUnit for unit testing, and TestNG for integration testing
+                    sh 'mvn test'
                 }
             }
         }
-
         stage('Code Analysis') {
             steps {
                 script {
-                    // SonarQube analysis
-                    withEnv(["PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
-                    }
+                    echo 'Analyzing the code...'
+                    // Use SonarQube for code analysis
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
-
         stage('Security Scan') {
             steps {
                 script {
-                    // OWASP Dependency-Check scan
-                    sh 'mvn dependency-check:check'
-                }
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    echo 'Performing security scan...'
+                    // Use OWASP Dependency-Check for security scanning
+                    sh 'dependency-check --scan .'
                 }
             }
         }
-
         stage('Deploy to Staging') {
             steps {
                 script {
-                    // Deployment to staging using AWS CLI (replace with your deployment method)
-                    sh '''
-                        aws s3 cp target/myapp.war s3://my-staging-bucket/myapp.war
-                        aws elasticbeanstalk create-application-version --application-name myapp --version-label staging --source-bundle S3Bucket=my-staging-bucket,S3Key=myapp.war
-                        aws elasticbeanstalk update-environment --application-name myapp --environment-name myapp-staging --version-label staging
-                    '''
+                    echo 'Deploying to staging...'
+                    // Deploy to AWS EC2 instance (use a script or AWS CLI)
+                    sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name MyGroup --s3-location bucket=my-bucket,key=my-app.zip,bundleType=zip'
                 }
             }
         }
-
         stage('Integration Tests on Staging') {
             steps {
                 script {
-                    // Integration tests on staging
-                    sh 'mvn verify -Denv=staging'
-                }
-            }
-            post {
-                always {
-                    junit '**/target/failsafe-reports/*.xml' // Publish test results
+                    echo 'Running integration tests on staging...'
+                    // Run tests using a testing framework or custom scripts
+                    sh 'mvn verify'
                 }
             }
         }
-
         stage('Deploy to Production') {
             steps {
                 script {
-                    // Deployment to production using AWS CLI (replace with your deployment method)
-                    sh '''
-                        aws s3 cp target/myapp.war s3://my-production-bucket/myapp.war
-                        aws elasticbeanstalk create-application-version --application-name myapp --version-label production --source-bundle S3Bucket=my-production-bucket,S3Key=myapp.war
-                        aws elasticbeanstalk update-environment --application-name myapp --environment-name myapp-production --version-label production
-                    '''
+                    echo 'Deploying to production...'
+                    // Deploy to AWS EC2 instance (use a script or AWS CLI)
+                    sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name MyProductionGroup --s3-location bucket=my-bucket,key=my-app.zip,bundleType=zip'
                 }
             }
         }
     }
-
     post {
+        always {
+            echo 'Pipeline completed.'
+        }
         success {
             mail to: 'minhhai1312004@gmail.com',
-                 subject: "Pipeline Success: ${currentBuild.fullDisplayName}",
-                 body: "The Jenkins pipeline succeeded. Check the results at ${env.BUILD_URL}."
+                 subject: "SUCCESS: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                 body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} completed successfully."
         }
         failure {
             mail to: 'minhhai1312004@gmail.com',
-                 subject: "Pipeline Failure: ${currentBuild.fullDisplayName}",
-                 body: "The Jenkins pipeline failed. Check the results at ${env.BUILD_URL}."
+                 subject: "FAILURE: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                 body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} failed. Check the Jenkins logs for details."
         }
     }
 }
