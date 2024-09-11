@@ -67,22 +67,22 @@ pipeline {
         }
         success {
             script {
-                def logFile = currentBuild.rawBuild.getLogFile()
+                logFileContent = new File("${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log").collect {it}
                 mail to: 'minhhai1312004@gmail.com',
                      subject: "SUCCESS: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
                      body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} completed successfully. See attached log file.",
                      attachLog: true,
-                     attachmentsPattern: logFile.toString()
+                     attachmentsPattern: logFileContent.toString()
             }
         }
         failure {
             script {
-                def logFile = currentBuild.rawBuild.getLogFile()
+                logFileContent = new File("${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log").collect {it}
                 mail to: 'minhhai1312004@gmail.com',
                      subject: "FAILURE: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
                      body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} failed. See attached log file for details.",
                      attachLog: true,
-                     attachmentsPattern: logFile.toString()
+                     attachmentsPattern: logFileContent.toString()
             }
         }
     }
