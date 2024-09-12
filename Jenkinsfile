@@ -12,7 +12,7 @@ pipeline {
             steps {
                 echo 'Run unit tests and integration tests.'
                 echo 'Tool: JUnit for unit tests.'
-                echo 'Tool: Selenium for integration tests.'
+                echo 'Tool: Postman for integration tests.'
             }
             post {
                 success {
@@ -120,7 +120,7 @@ pipeline {
         stage('Integration Tests on Staging') {
             steps {
                 echo 'Run integration tests on the staging environment.'
-                echo 'Tool: Selenium'
+                echo 'Tool: Postman'
             }
             post {
                 success {
