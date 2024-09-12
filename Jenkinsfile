@@ -1,89 +1,139 @@
 pipeline {
     agent any
-    tools {
-        maven 'Maven 3.9.9' // Or the name of your installed Maven tool
-    }
+
     stages {
         stage('Build') {
             steps {
-                script {
-                    echo 'Building the project...'
-                    sh 'mvn clean package'
-                }
+                echo 'Build the code using a build automation tool.'
+                echo 'Tool: Maven'
             }
         }
         stage('Unit and Integration Tests') {
             steps {
-                script {
-                    echo 'Running unit and integration tests...'
-                    sh 'mvn test'
+                echo 'Run unit tests and integration tests.'
+                echo 'Tool: JUnit for unit tests.'
+                echo 'Tool: Selenium for integration tests.'
+            }
+            post {
+                success {
+                    script {
+                        def logFile = "${env.BUILD_ID}_unit_integration.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Unit and Integration Tests Successful: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Unit and Integration Tests stage was successful. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
+                }
+                failure {
+                    script {
+                        def logFile = "${env.BUILD_ID}_unit_integration.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Unit and Integration Tests Failed: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Unit and Integration Tests stage failed. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
                 }
             }
         }
         stage('Code Analysis') {
             steps {
-                script {
-                    echo 'Analyzing the code...'
-                    sh 'mvn sonar:sonar'
-                }
+                echo 'Analyze the code to ensure it meets industry standards.'
+                echo 'Tool: SonarQube'
             }
         }
         stage('Security Scan') {
             steps {
-                script {
-                    echo 'Performing security scan...'
-                    sh 'dependency-check --scan .'
+                echo 'Perform a security scan to identify vulnerabilities.'
+                echo 'Tool: OWASP ZAP'
+            }
+            post {
+                success {
+                    script {
+                        def logFile = "${env.BUILD_ID}_security_scan.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Security Scan Successful: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Security Scan stage was successful. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
+                }
+                failure {
+                    script {
+                        def logFile = "${env.BUILD_ID}_security_scan.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Security Scan Failed: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Security Scan stage failed. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
                 }
             }
         }
         stage('Deploy to Staging') {
             steps {
-                script {
-                    echo 'Deploying to staging...'
-                    sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name MyGroup --s3-location bucket=my-bucket,key=my-app.zip,bundleType=zip'
-                }
+                echo 'Deploy the application to a staging server.'
+                echo 'Staging Server: AWS EC2 instance'
             }
         }
         stage('Integration Tests on Staging') {
             steps {
-                script {
-                    echo 'Running integration tests on staging...'
-                    sh 'mvn verify'
+                echo 'Run integration tests on the staging environment.'
+                echo 'Tool: Selenium'
+            }
+            post {
+                success {
+                    script {
+                        def logFile = "${env.BUILD_ID}_staging_integration.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Integration Tests on Staging Successful: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Integration Tests on Staging stage was successful. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
+                }
+                failure {
+                    script {
+                        def logFile = "${env.BUILD_ID}_staging_integration.log"
+                        writeFile file: logFile, text: currentBuild.rawBuild.getLog().join("\n")
+                        emailext(
+                            to: 'minhhai1312004@gmail.com',
+                            subject: "Integration Tests on Staging Failed: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                            body: """The Integration Tests on Staging stage failed. Check console output at ${env.BUILD_URL} to view the results.""",
+                            attachLog: true,
+                            attachmentsPattern: logFile
+                        )
+                    }
                 }
             }
         }
         stage('Deploy to Production') {
             steps {
-                script {
-                    echo 'Deploying to production...'
-                    sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name MyProductionGroup --s3-location bucket=my-bucket,key=my-app.zip,bundleType=zip'
-                }
+                echo 'Deploy the application to a production server.'
+                echo 'Production Server: AWS EC2 instance'
             }
         }
     }
+
     post {
         always {
-            echo 'Pipeline completed.'
-        }
-        success {
-            script {
-                logFileContent = new File("${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log").collect {it}
-                mail to: 'minhhai1312004@gmail.com',
-                     subject: "SUCCESS: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                     body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} completed successfully. See attached log file.",
-                     attachLog: true,
-                     attachmentsPattern: logFileContent.toString()
-            }
-        }
-        failure {
-            script {
-                logFileContent = new File("${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log").collect {it}
-                mail to: 'minhhai1312004@gmail.com',
-                     subject: "FAILURE: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                     body: "Pipeline ${env.JOB_NAME} - Build #${env.BUILD_NUMBER} failed. See attached log file for details.",
-                     attachLog: true,
-                     attachmentsPattern: logFileContent.toString()
-            }
+            echo 'Pipeline has finished.'
         }
     }
 }
